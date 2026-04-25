@@ -8,6 +8,16 @@ services:
     volumes:
       - ./html:/usr/share/nginx/html:ro
 
+  reveal-data-api:
+    build:
+      context: ./apps/reveal-data-api
+    container_name: kipina-reveal-data-api
+    restart: unless-stopped
+    environment:
+      KIPINA_ENVIRONMENT: kipina-pilot
+    ports:
+      - "127.0.0.1:8081:8080"
+
   # Future frontend service:
   # frontend:
   #   build:
@@ -17,19 +27,6 @@ services:
   #     - reveal-data-api
   #   networks:
   #     - public
-  #     - private
-
-  # Future API service:
-  # reveal-data-api:
-  #   build:
-  #     context: ./apps/reveal-data-api
-  #   restart: unless-stopped
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - valkey
-  #     - postgres
-  #   networks:
   #     - private
 
   # Future Valkey service:

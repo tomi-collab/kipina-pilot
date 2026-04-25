@@ -1,0 +1,9 @@
+pilot.kipina.digiter.fi {
+	handle /api/* {
+		reverse_proxy localhost:8081
+	}
+
+	handle {
+		reverse_proxy localhost:8080
+	}
+}

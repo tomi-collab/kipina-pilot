@@ -4,8 +4,9 @@ This repository contains the UpCloud-hosted deployment skeleton for the Kipina p
 
 Today, the stack is intentionally minimal:
 
-- `Caddy` on the host reverse proxies `pilot.kipina.digiter.fi` to `localhost:8080`
+- `Caddy` on the host reverse proxies the placeholder site to `localhost:8080` and `/api/*` to `localhost:8081`
 - `docker-compose.yml` runs a placeholder `nginx` container
+- `docker-compose.yml` also runs a small `reveal-data-api` container for health checks
 - `html/index.html` is the currently served placeholder page
 
 The folder structure is prepared for the next production-oriented phase without changing the current working placeholder.
@@ -53,10 +54,18 @@ More detail is in [docs/architecture.md](/opt/kipina-pilot/docs/architecture.md)
 
 ## Current Operation
 
-The current placeholder remains the active workload:
+The current placeholder and health API are the active workload:
 
 ```bash
 docker compose up -d
 ```
 
-That command should continue to start the `nginx` placeholder container serving `./html/index.html`.
+That command should continue to start:
+
+- `kipina-hello`, serving `./html/index.html` on `127.0.0.1:8080`
+- `kipina-reveal-data-api`, serving `GET /api/health` on `127.0.0.1:8081`
+
+Public traffic should go through Caddy:
+
+- `https://pilot.kipina.digiter.fi/`
+- `https://pilot.kipina.digiter.fi/api/health`
