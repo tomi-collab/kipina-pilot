@@ -52,6 +52,33 @@ More detail is in [docs/architecture.md](/opt/kipina-pilot/docs/architecture.md)
 - Future `Valkey` and `PostgreSQL` services are documented as internal-only and should not publish ports to the public internet.
 - The `secrets/` directory is reserved for deployment-time secrets and is excluded from git.
 
+## Server Capacity
+
+The UpCloud host has been expanded and the root filesystem now provides enough working space for both this repository and the separate Reveal Platform structure:
+
+- CPU: `2 vCPU`
+- RAM: approximately `8 GB`
+- Disk: `40 GB`
+- Free disk: approximately `34 GB`
+- Disk usage: `13%`
+
+Current root filesystem state:
+
+```text
+/dev/vda2  40G  4.6G  34G  13%  /
+```
+
+Docker sees the same expanded filesystem through its overlay mounts:
+
+```text
+overlay  40G  4.6G  34G  13%
+```
+
+This capacity is the intended baseline for:
+
+- `/opt/kipina-pilot`
+- `/opt/reveal-platform`
+
 ## Current Operation
 
 The current placeholder and health API are the active workload:
