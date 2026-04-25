@@ -1,0 +1,62 @@
+services:
+  hello:
+    image: nginx:alpine
+    container_name: kipina-hello
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+
+  # Future frontend service:
+  # frontend:
+  #   build:
+  #     context: ./apps/frontend
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - reveal-data-api
+  #   networks:
+  #     - public
+  #     - private
+
+  # Future API service:
+  # reveal-data-api:
+  #   build:
+  #     context: ./apps/reveal-data-api
+  #   restart: unless-stopped
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - valkey
+  #     - postgres
+  #   networks:
+  #     - private
+
+  # Future Valkey service:
+  # valkey:
+  #   image: valkey/valkey:8-alpine
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./services/valkey/data:/data
+  #   command: ["valkey-server", "--appendonly", "no", "--save", ""]
+  #   networks:
+  #     - private
+  #   # Intentionally no published ports: internal-only service.
+
+  # Future PostgreSQL service:
+  # postgres:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - ./services/postgres/data:/var/lib/postgresql/data
+  #   networks:
+  #     - private
+  #   # Intentionally no published ports: internal-only service.
+
+# Future networks:
+# networks:
+#   public:
+#   private:
+#     internal: true

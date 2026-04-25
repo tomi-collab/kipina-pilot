@@ -1,0 +1,8 @@
+secrets/*
+!secrets/.gitkeep
+.env
+*.pem
+*.key
+service-account*.json
+node_modules/
+dist/
