@@ -1,33 +1,43 @@
 services:
-  hello:
-    image: nginx:alpine
-    container_name: kipina-hello
+  kipina-frontend:
+    build:
+      context: ./apps/frontend
+    image: kipina-pilot-frontend
+    container_name: kipina-frontend
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:80"
-    volumes:
-      - ./html:/usr/share/nginx/html:ro
 
-  reveal-data-api:
+  kipina-reveal-data-api:
     build:
       context: ./apps/reveal-data-api
+    image: kipina-pilot-reveal-data-api
     container_name: kipina-reveal-data-api
     restart: unless-stopped
     environment:
-      KIPINA_ENVIRONMENT: kipina-pilot
+      PORT: "8080"
+      KIPINA_ACCESS_CODE: "${KIPINA_ACCESS_CODE}"
+      REVEAL_ENGINE_BASE_URL: "${REVEAL_ENGINE_BASE_URL}"
+      REVEAL_ENGINE_TIMEOUT_SECONDS: "${REVEAL_ENGINE_TIMEOUT_SECONDS:-60}"
+      KIPINA_TENANTS: "${KIPINA_TENANTS}"
     ports:
       - "127.0.0.1:8081:8080"
 
-  # Future frontend service:
-  # frontend:
-  #   build:
-  #     context: ./apps/frontend
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - reveal-data-api
-  #   networks:
-  #     - public
-  #     - private
+  concept-api:
+    build:
+      context: ./apps/concept-api
+    image: kipina-pilot-concept-api
+    container_name: kipina-concept-api
+    restart: unless-stopped
+    environment:
+      GCP_PROJECT_ID: "${GCP_PROJECT_ID:-apply-project-35406}"
+      GCP_LOCATION: "${GCP_LOCATION:-global}"
+      GEMINI_MODEL: "${GEMINI_MODEL:-gemini-3.1-pro-preview}"
+      GOOGLE_APPLICATION_CREDENTIALS: "/secrets/gcp-sa.json"
+    volumes:
+      - ./secrets/gcp-sa.json:/secrets/gcp-sa.json:ro
+    ports:
+      - "127.0.0.1:8082:8080"
 
   # Future Valkey service:
   # valkey:

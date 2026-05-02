@@ -1,0 +1,42 @@
+# Tämä on EHDOTUS docker-compose.yml:n päivityksestä.
+# ÄLÄ korvaa nykyistä tiedostoa suoraan — vertaa ja yhdistä manuaalisesti
+# pitääksesi olemassa olevat säädöt (esim. restart-policy) jotka eivät näy
+# minulle.
+#
+# Muutokset nykyiseen verrattuna:
+#   1. kipina-hello (nginx + html/index.html) POISTUU — korvataan kipina-frontend
+#      -palvelulla joka serveeraa Vite-buildin samasta 127.0.0.1:8080 -bindistä.
+#      Caddyfile EI muutu (reititys /  → :8080 toimii edelleen).
+#   2. kipina-reveal-data-api saa kolme uutta env-muuttujaa:
+#        KIPINA_ACCESS_CODE
+#        REVEAL_ENGINE_BASE_URL
+#        REVEAL_ENGINE_TENANT_KEY
+#        REVEAL_ENGINE_API_KEY
+#      Nämä luetaan host-tasolta (.env-tiedostosta tai shell-ympäristöstä).
+#      Älä committaa arvoja — käytä esim. /opt/kipina-pilot/.env -tiedostoa.
+
+services:
+  kipina-frontend:
+    build:
+      context: ./apps/frontend
+    image: kipina-pilot-frontend
+    container_name: kipina-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+
+  kipina-reveal-data-api:
+    build:
+      context: ./apps/reveal-data-api
+    image: kipina-pilot-reveal-data-api
+    container_name: kipina-reveal-data-api
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      KIPINA_ACCESS_CODE: "${KIPINA_ACCESS_CODE}"
+      REVEAL_ENGINE_BASE_URL: "${REVEAL_ENGINE_BASE_URL}"
+      REVEAL_ENGINE_TENANT_KEY: "${REVEAL_ENGINE_TENANT_KEY}"
+      REVEAL_ENGINE_API_KEY: "${REVEAL_ENGINE_API_KEY}"
+      REVEAL_ENGINE_TIMEOUT_SECONDS: "60"
+    ports:
+      - "127.0.0.1:8081:8080"

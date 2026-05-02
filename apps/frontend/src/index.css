@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/*
+  Kipinä-design tokens.
+  Käyttäjäryhmä: nuoret, maahanmuuttajat, seniorit, kommunikaatio-/toimintahaasteet.
+  Säännöt:
+    - AAA-kontrasti tekstillä (≥ 7:1 normaali, ≥ 4.5:1 iso teksti)
+    - Kosketuspinnat ≥ 48×48 px (--touch-min)
+    - Vain dark theme v1:ssä — tausta #101418 (sama kuin nykyisellä holding-sivulla)
+    - Värimaailma neutraali + lämmin keltainen aksentti ("kipinä")
+*/
+
+@theme {
+  --color-bg: #101418;
+  --color-surface: #1a1f26;
+  --color-surface-elevated: #232a33;
+  --color-border: #2f3741;
+  --color-border-strong: #4a5462;
+
+  --color-text: #f5f7fa;
+  --color-text-muted: #c5cdd8;
+  --color-text-faint: #8a93a0;
+
+  --color-accent: #ffc857;
+  --color-accent-hover: #ffd47a;
+  --color-accent-fg: #101418;
+
+  --color-success: #6ee7a8;
+  --color-danger: #ff8a8a;
+  --color-focus: #7ec8ff;
+
+  --spacing-touch: 3rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+
+  --font-sans: "Inter", "Helvetica Neue", system-ui, sans-serif;
+}
+
+/* shadcn-yhteensopivat muuttujanimet — komponentit lukevat näistä */
+:root {
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-text);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-text);
+  --primary: var(--color-accent);
+  --primary-foreground: var(--color-accent-fg);
+  --secondary: var(--color-surface-elevated);
+  --secondary-foreground: var(--color-text);
+  --muted: var(--color-surface);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-surface-elevated);
+  --accent-foreground: var(--color-text);
+  --destructive: var(--color-danger);
+  --destructive-foreground: var(--color-bg);
+  --border: var(--color-border);
+  --input: var(--color-border);
+  --ring: var(--color-focus);
+  --radius: var(--radius-md);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html, body, #root {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100%;
+  font-family: var(--font-sans);
+  /* Estä iOS-zoomi inputeissa */
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+/* Selkeä, näkyvä fokusrengas — AAA-tason saavutettavuus */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Yksinkertainen vierityssäilö joka käyttäytyy hyvin mobiilissa */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@keyframes kipina-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
