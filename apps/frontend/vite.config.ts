@@ -13,6 +13,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // Prototype API on oma palvelunsa hostin portissa 8083.
+      '/api/prototype': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+      },
       // Concept API on oma palvelunsa hostin portissa 8082.
       '/api/concepts': {
         target: 'http://localhost:8082',

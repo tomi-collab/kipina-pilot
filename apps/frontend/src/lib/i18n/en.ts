@@ -1,4 +1,5 @@
 import type { Translations } from './fi'
+import { pikatestiEn } from '@/locales/en/pikatesti'
 
 export const en: Translations = {
   app: {
@@ -60,6 +61,24 @@ export const en: Translations = {
       'This section is under construction. In the finished pilot, you will see a working wireframe of your idea here.',
     backToHome: 'Back to home',
   },
+  vibe: {
+    startButton: 'Start vibe coding',
+    startLoading: 'Mestari is preparing the first version...',
+    preparing: 'Mestari is coding...',
+    update: 'UPDATE',
+    updating: 'Updating...',
+    back: 'Back',
+    drawerLabel: 'Ask Mestari to change it',
+    promptPlaceholder: 'What to change? E.g. "Make this neon green"',
+    errors: {
+      sessionExpired: 'Session ended. Start a new vibe coding.',
+      sessionExpiredAction: 'Start again',
+      networkError: 'Connection lost. Try again.',
+      mestariNotResponding: 'Mestari is not responding right now. Try again.',
+      startFailed: 'Could not start vibe coding. Try again.',
+    },
+  },
+  pikatesti: pikatestiEn,
   common: {
     back: 'Back',
     loading: 'Loading...',

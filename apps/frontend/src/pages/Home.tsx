@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Layout } from '@/components/Layout'
+import { PikatestiModal } from '@/components/PikatestiModal'
 import { Button } from '@/components/ui/button'
 import { Card, CardTitle, CardBody } from '@/components/ui/card'
 import { useTranslation } from '@/lib/i18n'
@@ -9,6 +11,10 @@ import { getTenants, type Tenant } from '@/lib/api'
 export function HomePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [pikatestiOpen, setPikatestiOpen] = useState(false)
+  const showPikatesti =
+    import.meta.env.DEV ||
+    new URLSearchParams(window.location.search).get('pikatesti') === '1'
 
   const { data: tenants, isLoading, isError } = useQuery({
     queryKey: ['tenants'],
@@ -49,6 +55,21 @@ export function HomePage() {
           ))}
         </div>
       )}
+
+      {showPikatesti && (
+        <button
+          type="button"
+          onClick={() => setPikatestiOpen(true)}
+          className="fixed bottom-4 right-4 z-40 min-h-11 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-300 backdrop-blur transition-all hover:bg-emerald-500/40"
+        >
+          {t.pikatesti.button}
+        </button>
+      )}
+
+      <PikatestiModal
+        open={pikatestiOpen}
+        onClose={() => setPikatestiOpen(false)}
+      />
     </Layout>
   )
 }

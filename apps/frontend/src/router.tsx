@@ -10,6 +10,7 @@ import { HomePage } from '@/pages/Home'
 import { IdeaPage } from '@/pages/Idea'
 import { ConceptPage } from '@/pages/Concept'
 import { PrototypePage } from '@/pages/Prototype'
+import { VibeStudioPage } from '@/pages/VibeStudio'
 
 const STORAGE_KEY = 'kipina_auth_ok'
 
@@ -68,9 +69,21 @@ const prototypeRoute = createRoute({
   component: PrototypePage,
 })
 
+const vibeRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: '/vibe/$sessionId',
+  component: VibeStudioPage,
+})
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  protectedRoute.addChildren([homeRoute, ideaRoute, conceptRoute, prototypeRoute]),
+  protectedRoute.addChildren([
+    homeRoute,
+    ideaRoute,
+    conceptRoute,
+    prototypeRoute,
+    vibeRoute,
+  ]),
 ])
 
 export const router = createRouter({ routeTree })

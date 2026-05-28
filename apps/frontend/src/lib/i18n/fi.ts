@@ -1,3 +1,5 @@
+import { pikatestiFi } from '@/locales/fi/pikatesti'
+
 export interface Translations {
   app: {
     title: string
@@ -53,6 +55,36 @@ export interface Translations {
     description: string
     placeholder: string
     backToHome: string
+  }
+  vibe: {
+    startButton: string
+    startLoading: string
+    preparing: string
+    update: string
+    updating: string
+    back: string
+    drawerLabel: string
+    promptPlaceholder: string
+    errors: {
+      sessionExpired: string
+      sessionExpiredAction: string
+      networkError: string
+      mestariNotResponding: string
+      startFailed: string
+    }
+  }
+  pikatesti: {
+    title: string
+    description: string
+    placeholder: string
+    start: string
+    cancel: string
+    close: string
+    loading: string
+    button: string
+    errors: {
+      startFailed: string
+    }
   }
   common: {
     back: string
@@ -121,6 +153,24 @@ export const fi: Translations = {
       'Tämä osio on rakenteilla. Valmiissa pilotissa näet tästä toimivan rautalankamallin ideastasi.',
     backToHome: 'Etusivulle',
   },
+  vibe: {
+    startButton: 'Aloita vibekoodaus',
+    startLoading: 'Mestari valmistelee ensimmäistä versiota...',
+    preparing: 'Mestari koodaa...',
+    update: 'PÄIVITYS',
+    updating: 'Päivitetään...',
+    back: 'Takaisin',
+    drawerLabel: 'Pyydä Mestaria muuttamaan',
+    promptPlaceholder: 'Mitä muutetaan? Esim. "Tee tästä neonvihreä"',
+    errors: {
+      sessionExpired: 'Sessio päättyi. Aloita uusi vibekoodaus.',
+      sessionExpiredAction: 'Aloita uudelleen',
+      networkError: 'Yhteys katkesi. Yritä uudelleen.',
+      mestariNotResponding: 'Mestari ei juuri nyt vastaa. Yritä uudelleen.',
+      startFailed: 'Vibekoodausta ei voitu aloittaa. Yritä uudelleen.',
+    },
+  },
+  pikatesti: pikatestiFi,
   common: {
     back: 'Takaisin',
     loading: 'Ladataan...',

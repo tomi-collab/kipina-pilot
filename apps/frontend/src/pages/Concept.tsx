@@ -8,6 +8,8 @@ import { useTranslation } from '@/lib/i18n'
 import { generateConcept, type GenerateConceptResponse } from '@/lib/api'
 
 const REPORT_STORAGE_PREFIX = 'kipina_report_'
+const VIBE_REPORT_STORAGE_PREFIX = 'kipina-report-'
+const VIBE_CONCEPT_STORAGE_PREFIX = 'kipina-concept-'
 const conceptCache = new Map<string, string>()
 
 export function ConceptPage() {
@@ -30,6 +32,7 @@ export function ConceptPage() {
     onSuccess: (data: GenerateConceptResponse, reportText) => {
       conceptCache.set(cacheKey(reportText, lang), data.concept)
       setConcept(data.concept)
+      sessionStorage.setItem(VIBE_CONCEPT_STORAGE_PREFIX + id, data.concept)
     },
   })
 
@@ -38,9 +41,17 @@ export function ConceptPage() {
     const cached = conceptCache.get(cacheKey(report, lang))
     if (cached) {
       setConcept(cached)
+      sessionStorage.setItem(VIBE_CONCEPT_STORAGE_PREFIX + id, cached)
       return
     }
     mutation.mutate(report)
+  }
+
+  const handleStartVibeCoding = () => {
+    if (!report) return
+    sessionStorage.setItem(VIBE_CONCEPT_STORAGE_PREFIX + id, concept ?? report)
+    sessionStorage.setItem(VIBE_REPORT_STORAGE_PREFIX + id, report)
+    navigate({ to: '/vibe/$sessionId', params: { sessionId: id } })
   }
 
   const showError = mutation.isError && !mutation.isPending
@@ -107,12 +118,11 @@ export function ConceptPage() {
       <div className="mt-6 flex flex-col sm:flex-row gap-3">
         <Button
           size="xl"
-          onClick={() =>
-            navigate({ to: '/proto/$id', params: { id } })
-          }
+          onClick={handleStartVibeCoding}
           disabled={!report}
+          className="bg-emerald-500 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:bg-emerald-400"
         >
-          {t.concept.nextStep} →
+          {t.vibe.startButton} →
         </Button>
         <Button
           variant="secondary"
