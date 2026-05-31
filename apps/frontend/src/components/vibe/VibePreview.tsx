@@ -31,7 +31,8 @@ export function VibePreview({
         <iframe
           className="h-full w-full border-none bg-white"
           srcDoc={injectedHtml}
-          sandbox="allow-scripts allow-forms"
+          sandbox="allow-scripts allow-forms allow-modals"
+          allow="clipboard-write; fullscreen"
           title={title}
         />
       ) : (

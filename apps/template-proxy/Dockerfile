@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py analyze.py rate_limit.py .
+COPY app.py analyze.py image.py mock.py text_helper.py weather.py transit.py rate_limit.py .
 
 EXPOSE 8080
 

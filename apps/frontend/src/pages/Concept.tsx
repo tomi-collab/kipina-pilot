@@ -10,7 +10,9 @@ import { generateConcept, type GenerateConceptResponse } from '@/lib/api'
 const REPORT_STORAGE_PREFIX = 'kipina_report_'
 const VIBE_REPORT_STORAGE_PREFIX = 'kipina-report-'
 const VIBE_CONCEPT_STORAGE_PREFIX = 'kipina-concept-'
+const VIBE_TEMPLATES_STORAGE_PREFIX = 'kipina-templates-'
 const conceptCache = new Map<string, string>()
+const templateCache = new Map<string, string[]>()
 
 export function ConceptPage() {
   const { lang, t } = useTranslation()
@@ -31,8 +33,13 @@ export function ConceptPage() {
       generateConcept({ report: reportText, language: lang }),
     onSuccess: (data: GenerateConceptResponse, reportText) => {
       conceptCache.set(cacheKey(reportText, lang), data.concept)
+      templateCache.set(cacheKey(reportText, lang), data.suggested_templates ?? [])
       setConcept(data.concept)
       sessionStorage.setItem(VIBE_CONCEPT_STORAGE_PREFIX + id, data.concept)
+      sessionStorage.setItem(
+        VIBE_TEMPLATES_STORAGE_PREFIX + id,
+        JSON.stringify(data.suggested_templates ?? [])
+      )
     },
   })
 
@@ -42,6 +49,10 @@ export function ConceptPage() {
     if (cached) {
       setConcept(cached)
       sessionStorage.setItem(VIBE_CONCEPT_STORAGE_PREFIX + id, cached)
+      sessionStorage.setItem(
+        VIBE_TEMPLATES_STORAGE_PREFIX + id,
+        JSON.stringify(templateCache.get(cacheKey(report, lang)) ?? [])
+      )
       return
     }
     mutation.mutate(report)
@@ -51,6 +62,9 @@ export function ConceptPage() {
     if (!report) return
     sessionStorage.setItem(VIBE_CONCEPT_STORAGE_PREFIX + id, concept ?? report)
     sessionStorage.setItem(VIBE_REPORT_STORAGE_PREFIX + id, report)
+    if (!sessionStorage.getItem(VIBE_TEMPLATES_STORAGE_PREFIX + id)) {
+      sessionStorage.setItem(VIBE_TEMPLATES_STORAGE_PREFIX + id, JSON.stringify([]))
+    }
     navigate({ to: '/vibe/$sessionId', params: { sessionId: id } })
   }
 

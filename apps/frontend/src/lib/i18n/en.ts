@@ -69,7 +69,8 @@ export const en: Translations = {
     updating: 'Updating...',
     back: 'Back',
     drawerLabel: 'Ask Mestari to change it',
-    promptPlaceholder: 'What to change? E.g. "Make this neon green"',
+    promptPlaceholder:
+      'Ask for a change or ask anything — e.g. "make the button bigger" or "why does this not work?"',
     errors: {
       sessionExpired: 'Session ended. Start a new vibe coding.',
       sessionExpiredAction: 'Start again',

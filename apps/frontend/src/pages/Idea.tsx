@@ -15,6 +15,7 @@ interface Turn {
 }
 
 const REPORT_STORAGE_PREFIX = 'kipina_report_'
+const VIBE_REPORT_STORAGE_PREFIX = 'kipina-report-'
 
 export function IdeaPage() {
   const { t } = useTranslation()
@@ -56,6 +57,11 @@ export function IdeaPage() {
           REPORT_STORAGE_PREFIX + nextSessionId,
           reportText
         )
+        sessionStorage.setItem(
+          VIBE_REPORT_STORAGE_PREFIX + nextSessionId,
+          reportText
+        )
+        navigate({ to: '/vibe/$sessionId', params: { sessionId: nextSessionId } })
       }
     },
   })

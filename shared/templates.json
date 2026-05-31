@@ -1,0 +1,57 @@
+{
+  "templates": [
+    {
+      "id": "weather-current",
+      "kuvaus": "Nykyinen säätila suomalaiselle paikkakunnalle (lämpötila, tuuli, kosteus).",
+      "kayta_kun": "Idea liittyy säähän, ulkoiluun, pukeutumiseen, aamurutiineihin.",
+      "runtime_endpoint": "GET /api/templates/weather-current?place=PAIKKA",
+      "tool_name": "get_weather"
+    },
+    {
+      "id": "transit-helsinki",
+      "kuvaus": "Seuraavat joukkoliikenteen lähdöt Helsingin seudun pysäkiltä.",
+      "kayta_kun": "Idea liittyy koulumatkaan, harrastusmatkaan, liikkumiseen pääkaupunkiseudulla.",
+      "runtime_endpoint": "GET /api/templates/transit-helsinki?stop_name=PYSAKKI",
+      "tool_name": "get_transit"
+    },
+    {
+      "id": "analyze",
+      "kuvaus": "Analysoi vaihtoehtoja: plussat/miinukset, järjestys, suositus tai yhteenveto.",
+      "kayta_kun": "Idea auttaa nuorta tekemään päätöksiä tai vertailemaan vaihtoehtoja.",
+      "runtime_endpoint": "POST /api/templates/analyze",
+      "tool_name": "analyze_options"
+    },
+    {
+      "id": "image-random",
+      "kuvaus": "Satunnaisen valokuvan URL (seed-pohjainen, sisältö ei liity aiheeseen).",
+      "kayta_kun": "Idea hyötyy kuvituksesta, inspiraatiotauluista, visuaalisesta ilmeestä.",
+      "runtime_endpoint": "GET /api/templates/image-random?seed=AIHE&width=600&height=400",
+      "tool_name": "get_image"
+    },
+    {
+      "id": "calendar-mock",
+      "kuvaus": "Esimerkki-viikkokalenteri (demo-dataa).",
+      "kayta_kun": "Idea käsittelee aikataulua, viikon suunnittelua, rutiineja.",
+      "runtime_endpoint": "GET /api/templates/calendar-mock",
+      "tool_name": "get_calendar"
+    },
+    {
+      "id": "messages-mock",
+      "kuvaus": "Esimerkki-viestiketju (demo-dataa, turvallinen sisältö).",
+      "kayta_kun": "Idea on chat-, viesti- tai vuorovaikutussovellus.",
+      "runtime_endpoint": "GET /api/templates/messages-mock",
+      "tool_name": "get_messages"
+    },
+    {
+      "id": "text-helper",
+      "kuvaus": "Tekstinkäsittely tekoälyllä: käännä, tiivistä, muotoile tai selitä selkokielellä.",
+      "kayta_kun": "Idea tarvitsee tekstin kääntämistä, tiivistämistä tai selkokielistämistä (esim. globaalit uutiset suomeksi).",
+      "runtime_endpoint": "POST /api/templates/text-helper",
+      "tool_name": "use_text_helper"
+    }
+  ],
+  "kartta_ohje": {
+    "kuvaus": "Interaktiivinen kartta Leaflet-kirjastolla suoraan prototyyppiin (ei tietolähde, ei työkalu).",
+    "kayta_kun": "Idea tarvitsee karttaa tai sijainnin näyttämistä."
+  }
+}

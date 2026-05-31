@@ -41,6 +41,7 @@ export interface GenerateConceptRequest {
 
 export interface GenerateConceptResponse {
   concept: string
+  suggested_templates?: string[]
 }
 
 class ApiError extends Error {

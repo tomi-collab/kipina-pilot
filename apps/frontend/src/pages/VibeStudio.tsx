@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { VibeControls } from '@/components/vibe/VibeControls'
 import { VibeDrawer } from '@/components/vibe/VibeDrawer'
 import { VibePreview } from '@/components/vibe/VibePreview'
+import { VibeStartCanvas } from '@/components/vibe/VibeStartCanvas'
 import { Button } from '@/components/ui/button'
 import { useVibeSession } from '@/hooks/useVibeSession'
 import { useTranslation } from '@/lib/i18n'
@@ -18,12 +19,14 @@ export function VibeStudioPage() {
   const { sessionId } = useParams({ from: '/protected/vibe/$sessionId' })
   const {
     state,
-    startSession,
+    startAutomatedSession,
     iterate,
     setPromptText,
     setDrawerOpen,
     clearError,
   } = useVibeSession(sessionId, lang)
+  const [conceptText, setConceptText] = useState<string | null>(null)
+  const [conceptOpen, setConceptOpen] = useState(false)
 
   useEffect(() => {
     if (!sessionId || !/^[A-Za-z0-9._:-]+$/.test(sessionId)) {
@@ -35,24 +38,28 @@ export function VibeStudioPage() {
     if (state.initialized || state.prototypeHtml) return
     if (sessionStorage.getItem(VIBE_STORAGE_PREFIX + sessionId)) return
 
-    const concept = sessionStorage.getItem(CONCEPT_STORAGE_PREFIX + sessionId)
     const report =
       sessionStorage.getItem(REPORT_STORAGE_PREFIX + sessionId) ??
       sessionStorage.getItem(LEGACY_REPORT_STORAGE_PREFIX + sessionId)
 
-    if (!concept || !report) {
+    if (!report) {
       navigate({ to: '/konsepti/$id', params: { id: sessionId } })
       return
     }
 
-    startSession(concept, report, 'vibe')
+    startAutomatedSession(report, 'vibe')
   }, [
     navigate,
     sessionId,
-    startSession,
+    startAutomatedSession,
     state.initialized,
     state.prototypeHtml,
   ])
+
+  useEffect(() => {
+    const storedConcept = sessionStorage.getItem(CONCEPT_STORAGE_PREFIX + sessionId)
+    setConceptText(storedConcept && storedConcept !== '[object Object]' ? storedConcept : null)
+  }, [sessionId, state.isInitializing, state.prototypeHtml])
 
   const handleBack = () => {
     navigate({ to: '/konsepti/$id', params: { id: sessionId } })
@@ -65,22 +72,23 @@ export function VibeStudioPage() {
   const retryStart = () => {
     clearError()
     if (state.prototypeHtml) return
-    const concept = sessionStorage.getItem(CONCEPT_STORAGE_PREFIX + sessionId)
     const report =
       sessionStorage.getItem(REPORT_STORAGE_PREFIX + sessionId) ??
       sessionStorage.getItem(LEGACY_REPORT_STORAGE_PREFIX + sessionId)
-    if (!concept || !report) {
+    if (!report) {
       navigate({ to: '/konsepti/$id', params: { id: sessionId } })
       return
     }
-    startSession(concept, report, 'vibe')
+    startAutomatedSession(report, 'vibe')
   }
 
   const errorText = state.expired
     ? t.vibe.errors.sessionExpired
-    : state.error
+    : state.error && state.prototypeHtml
       ? t.vibe.errors.startFailed
       : null
+  const showStartCanvas =
+    state.isInitializing || (!state.prototypeHtml && Boolean(state.error))
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-slate-950 text-slate-100">
@@ -118,6 +126,26 @@ export function VibeStudioPage() {
               {t.vibe.drawerLabel}
             </p>
           </div>
+          {conceptText && (
+            <div className="mb-5 rounded-2xl border border-slate-700 bg-slate-900/80 p-4">
+              <Button
+                type="button"
+                variant="ghost"
+                size="md"
+                className="min-h-12 w-full justify-between px-0 text-left text-slate-100 hover:bg-transparent"
+                onClick={() => setConceptOpen((open) => !open)}
+                aria-expanded={conceptOpen}
+              >
+                <span>Näin ymmärsin ideasi</span>
+                <span aria-hidden="true">{conceptOpen ? '−' : '+'}</span>
+              </Button>
+              {conceptOpen && (
+                <div className="mt-3 max-h-72 overflow-y-auto border-t border-slate-700 pt-3 text-slate-300">
+                  <ConceptSummary text={conceptText} />
+                </div>
+              )}
+            </div>
+          )}
           <VibeControls
             promptText={state.promptText}
             placeholder={t.vibe.promptPlaceholder}
@@ -167,6 +195,48 @@ export function VibeStudioPage() {
           </div>
         </div>
       )}
+
+      {showStartCanvas && (
+        <VibeStartCanvas
+          hasError={Boolean(state.error)}
+          phase={state.error ? 'error' : state.startPhase}
+          onRetry={retryStart}
+        />
+      )}
+    </div>
+  )
+}
+
+function ConceptSummary({ text }: { text: string }) {
+  return (
+    <div className="space-y-2">
+      {text.split('\n').map((line, index) => {
+        const trimmed = line.trim()
+        if (!trimmed) {
+          return <div key={index} className="h-2" aria-hidden="true" />
+        }
+        if (trimmed.startsWith('## ')) {
+          return (
+            <h2 key={index} className="pt-2 text-lg font-bold text-slate-100 first:pt-0">
+              {trimmed.slice(3)}
+            </h2>
+          )
+        }
+        const bullet = trimmed.match(/^[-*]\s+(.*)$/)
+        if (bullet) {
+          return (
+            <p key={index} className="flex gap-2 text-sm leading-relaxed">
+              <span aria-hidden="true">-</span>
+              <span>{bullet[1]}</span>
+            </p>
+          )
+        }
+        return (
+          <p key={index} className="whitespace-pre-wrap text-sm leading-relaxed">
+            {trimmed}
+          </p>
+        )
+      })}
     </div>
   )
 }

@@ -9,7 +9,7 @@ from google.genai import types
 
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
-LOCATION = os.environ.get("TEMPLATE_PROXY_LOCATION", "us-central1")
+LOCATION = os.environ.get("TEMPLATE_PROXY_LOCATION", "europe-west4")
 MODEL_NAME = os.environ.get("TEMPLATE_GEMINI_MODEL", "gemini-2.5-flash")
 
 ALLOWED_ANALYSIS_TYPES = {"pros_cons", "ranking", "advice", "summary"}

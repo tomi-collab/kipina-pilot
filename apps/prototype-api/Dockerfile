@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py mestari.py agent_engine.py sandbox_state.py .
+COPY app.py mestari.py sandbox_state.py .
 
 EXPOSE 8080
 

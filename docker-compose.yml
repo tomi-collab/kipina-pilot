@@ -31,11 +31,13 @@ services:
     restart: unless-stopped
     environment:
       GCP_PROJECT_ID: "${GCP_PROJECT_ID:-apply-project-35406}"
-      GCP_LOCATION: "${GCP_LOCATION:-global}"
-      GEMINI_MODEL: "${GEMINI_MODEL:-gemini-3.1-pro-preview}"
+      GCP_LOCATION: "${GCP_LOCATION:-europe-west4}"
+      CONCEPT_GEMINI_MODEL: "${CONCEPT_GEMINI_MODEL:-gemini-2.5-pro}"
+      TEMPLATES_PATH: "/app/templates.json"
       GOOGLE_APPLICATION_CREDENTIALS: "/secrets/gcp-sa.json"
     volumes:
       - ./secrets/gcp-sa.json:/secrets/gcp-sa.json:ro
+      - ./shared/templates.json:/app/templates.json:ro
     ports:
       - "127.0.0.1:8082:8080"
 
@@ -47,12 +49,14 @@ services:
     restart: unless-stopped
     environment:
       GCP_PROJECT_ID: "${GCP_PROJECT_ID:-apply-project-35406}"
-      GCP_LOCATION: "${PROTOTYPE_GCP_LOCATION:-us-central1}"
-      GEMINI_MODEL: "${PROTOTYPE_GEMINI_MODEL:-gemini-3-pro}"
-      AGENT_ENGINE_ID: "${AGENT_ENGINE_ID}"
+      GCP_LOCATION: "${PROTOTYPE_GCP_LOCATION:-europe-west4}"
+      GEMINI_MODEL: "${PROTOTYPE_GEMINI_MODEL:-gemini-2.5-pro}"
+      TEMPLATE_PROXY_BASE_URL: "http://template-proxy:8080"
+      TEMPLATES_PATH: "/app/templates.json"
       GOOGLE_APPLICATION_CREDENTIALS: "/secrets/gcp-sa-vibe.json"
     volumes:
       - ./secrets:/secrets:ro
+      - ./shared/templates.json:/app/templates.json:ro
     ports:
       - "127.0.0.1:8083:8080"
     healthcheck:
@@ -70,11 +74,15 @@ services:
     restart: unless-stopped
     environment:
       GCP_PROJECT_ID: "${GCP_PROJECT_ID:-apply-project-35406}"
-      TEMPLATE_PROXY_LOCATION: "${TEMPLATE_PROXY_LOCATION:-global}"
+      TEMPLATE_PROXY_LOCATION: "${TEMPLATE_PROXY_LOCATION:-europe-west4}"
       TEMPLATE_GEMINI_MODEL: "${TEMPLATE_GEMINI_MODEL:-gemini-2.5-flash}"
+      DIGITRANSIT_SUBSCRIPTION_KEY: "${DIGITRANSIT_SUBSCRIPTION_KEY:-}"
+      DIGITRANSIT_ROUTING_URL: "${DIGITRANSIT_ROUTING_URL:-https://api.digitransit.fi/routing/v2/hsl/gtfs/v1}"
+      TEMPLATES_PATH: "/app/templates.json"
       GOOGLE_APPLICATION_CREDENTIALS: "/secrets/gcp-sa-vibe.json"
     volumes:
       - ./secrets/gcp-sa-vibe.json:/secrets/gcp-sa-vibe.json:ro
+      - ./shared/templates.json:/app/templates.json:ro
     ports:
       - "127.0.0.1:8085:8080"
     healthcheck:

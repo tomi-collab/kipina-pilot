@@ -4,11 +4,13 @@ B1-palvelu luo Mestarin avulla selainpohjaisia prototyyppejä konseptiraportista
 
 Nykyinen B1-valinta:
 
-- Palvelu luo Agent Engine Code Execution -sandboxin istunnolle.
+- Palvelu luo kevyen Kipinä-sandbox-tunnisteen istunnolle.
 - Mestari tuottaa prototyypin HTML:n suoraan Gemini-vastauksena.
 - Sandboxissa ei vielä ajeta HTML:ää tai JavaScriptiä. Tämä pidetään B1:ssä kevyenä, koska Template Proxy ja varsinainen validointivaihe tulevat myöhemmissä vaiheissa.
 
-Tämä vastaa briefin kevyempää polkua: Agent Engine -kytkentä ja sandbox-elinkaari ovat mukana, mutta koodin suoritus syvennetään myöhemmin ilman julkisen HTTP-rajapinnan muutosta.
+Tämä vastaa briefin kevyempää polkua: prototyyppi generoidaan HTML:nä ja
+istuntoa seurataan Kipinän omalla sandbox-tunnisteella ilman Agent Engine
+-sandboxin luontia.
 
 ## Endpoints
 
@@ -18,4 +20,5 @@ Tämä vastaa briefin kevyempää polkua: Agent Engine -kytkentä ja sandbox-eli
 - `POST /api/prototype/undo`
 - `DELETE /api/prototype/{sandbox_id}`
 
-Palvelu käynnistyy myös ilman GCP-resursseja, mutta prototype-endpointit palauttavat `503`, jos `AGENT_ENGINE_ID` tai service account -avain puuttuu.
+Palvelu käynnistyy myös ilman Agent Engine -resurssia. Prototype-endpointit
+tarvitsevat edelleen Vertex AI / Gemini -käyttöön service account -avaimen.

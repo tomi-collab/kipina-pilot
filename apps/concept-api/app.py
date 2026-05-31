@@ -12,13 +12,18 @@ from typing import Any
 from urllib.parse import urlparse
 
 from google import genai
+from google.genai import types
 
 
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "")
-GCP_LOCATION = os.environ.get("GCP_LOCATION", "global")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-pro-preview")
+GCP_LOCATION = os.environ.get("GCP_LOCATION", "europe-west4")
+GEMINI_MODEL = os.environ.get(
+    "CONCEPT_GEMINI_MODEL",
+    os.environ.get("GEMINI_MODEL", "gemini-2.5-pro"),
+)
 GEMINI_TIMEOUT_SECONDS = int(os.environ.get("GEMINI_TIMEOUT_SECONDS", "60"))
 GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
+TEMPLATES_PATH = os.environ.get("TEMPLATES_PATH", "/app/templates.json")
 PORT = int(os.environ.get("PORT", "8080"))
 
 CORS_ORIGIN = "https://pilot.kipina.digiter.fi"
@@ -27,6 +32,8 @@ MAX_REPORT_CHARS = 50_000
 
 _executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 _client: genai.Client | None = None
+_templates_metadata: dict[str, Any] | None = None
+_template_ids: set[str] | None = None
 
 
 def log(message: str) -> None:
@@ -44,7 +51,60 @@ def get_client() -> genai.Client:
     return _client
 
 
+def get_templates_metadata() -> dict[str, Any]:
+    global _templates_metadata, _template_ids
+    if _templates_metadata is None:
+        try:
+            with open(TEMPLATES_PATH, encoding="utf-8") as file:
+                data = json.load(file)
+        except OSError as exc:
+            raise RuntimeError(f"templates metadata missing: {TEMPLATES_PATH}") from exc
+        templates = data.get("templates")
+        if not isinstance(templates, list):
+            raise RuntimeError("templates metadata must include a templates list")
+        ids = {
+            item.get("id")
+            for item in templates
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        if not ids:
+            raise RuntimeError("templates metadata includes no valid template ids")
+        _templates_metadata = data
+        _template_ids = ids
+    return _templates_metadata
+
+
+def allowed_template_ids() -> set[str]:
+    get_templates_metadata()
+    assert _template_ids is not None
+    return _template_ids
+
+
+def build_template_menu() -> str:
+    data = get_templates_metadata()
+    rows = [
+        f"- {item['id']}: {item['kuvaus']} ({item['kayta_kun']})"
+        for item in data["templates"]
+    ]
+    map_info = data.get("kartta_ohje")
+    if isinstance(map_info, dict):
+        rows.append(f"- kartta: {map_info['kuvaus']} ({map_info['kayta_kun']})")
+    return "\n".join(rows)
+
+
+def validate_suggested_templates(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    allowed = allowed_template_ids()
+    result = []
+    for item in value:
+        if isinstance(item, str) and item in allowed and item not in result:
+            result.append(item)
+    return result
+
+
 def build_prompt(report: str, language: str) -> str:
+    template_menu = build_template_menu()
     if language == "en":
         return f"""You are a concept designer in the Kipina pilot. You receive a report describing a young person's idea. Your job is to turn it into a concept description that the young person can use to build a working application on a vibe-coding platform (such as Replit, Lovable, or Bolt) in one or a few sessions.
 
@@ -58,7 +118,9 @@ IMPORTANT BUILD CONTEXT:
 
 Prefer "one screen that does one thing well" over "a platform that enables everything". The point is for the young person to see their idea actually working soon — not a promise of a vast system.
 
-Write the concept as free-form prose, not JSON, not tables. Use clear subheadings. Keep the whole concept under 500 words.
+Return JSON with two fields:
+- "concept": free-form prose, not JSON inside the string, not tables. Use clear subheadings. Keep the whole concept under 500 words.
+- "suggested_templates": an array of template ids chosen from the available data sources below.
 
 Include the following sections, in this order, with exactly these headings:
 
@@ -82,6 +144,12 @@ In 2–4 sentences: how would this be built in practice as a browser-based web a
 
 Design the concept so that it works well on mobile. Mobile use is a strong starting point: the UI, user journey, and features should be naturally usable in a phone browser. This is not an absolute requirement and the concept does not have to be mobile-only, but the phone screen, touch input, and short bursts of use should guide the design.
 
+AVAILABLE DATA SOURCES (choose from these):
+
+{template_menu}
+
+Decide which of these data sources fit this idea. Choose only the ones that genuinely serve the idea — do not choose all of them. If the idea does not need external data, return an empty suggested_templates array. If a map fits, mention the map need in the concept text, but do not include "map" in suggested_templates.
+
 Here is the report:
 
 ---
@@ -100,7 +168,9 @@ TÄRKEÄ TOTEUTUSKONTEKSTI:
 
 Mieluummin "yksi näyttö joka tekee yhden asian hyvin" kuin "alusta joka mahdollistaa kaiken". Onnistumisen ydin on että nuori näkee oman ideansa toimivan oikeasti pian — ei lupausta valtavasta järjestelmästä.
 
-Kirjoita konsepti vapaamuotoisena tekstinä, ei JSONina, ei taulukoina. Käytä selkeitä alaotsikoita. Pidä koko konsepti alle 500 sanan mittaisena.
+Palauta JSON jossa on kaksi kenttää:
+- "concept": vapaamuotoinen konseptiteksti merkkijonona, ei JSONia merkkijonon sisällä, ei taulukoita. Käytä selkeitä alaotsikoita. Pidä koko konsepti alle 500 sanan mittaisena.
+- "suggested_templates": lista alla olevista tietolähde-id:istä.
 
 Sisällytä seuraavat osiot, tässä järjestyksessä, tarkalleen näillä otsikoilla:
 
@@ -124,6 +194,15 @@ Listaa ranskalaisilla viivoilla, MILLAISTA tietoa sovellus tarvitsisi ulkoisista
 
 Suunnittele konsepti niin, että se toimii hyvin mobiililla. Mobiilikäyttö on vahva lähtökohta: käyttöliittymä, käyttäjäpolku ja toiminnot tulee voida toteuttaa luontevasti puhelimen selaimessa. Tämä ei ole ehdoton vaatimus, eikä konseptin tarvitse olla vain mobiililla toimiva, mutta puhelimen ruutu, kosketuskäyttö ja lyhyet käyttöhetket ohjaavat suunnittelua.
 
+KÄYTETTÄVISSÄ OLEVAT TIETOLÄHTEET (valitse näistä):
+
+{template_menu}
+
+Päätä mitkä näistä tietolähteistä sopivat tähän ideaan. Valitse vain ne
+jotka aidosti palvelevat ideaa — älä valitse kaikkia. Jos idea ei tarvitse
+ulkoista dataa, jätä valinta tyhjäksi. Jos idea tarvitsee karttaa, mainitse
+karttatarve konseptitekstissä, mutta älä lisää "map" suggested_templates-listaan.
+
 Tässä on raportti:
 
 ---
@@ -131,13 +210,39 @@ Tässä on raportti:
 ---"""
 
 
-def generate_concept(prompt: str) -> str:
+def generate_concept(prompt: str) -> dict[str, Any]:
     client = get_client()
     response = client.models.generate_content(
         model=GEMINI_MODEL,
         contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema={
+                "type": "object",
+                "properties": {
+                    "concept": {"type": "string"},
+                    "suggested_templates": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                },
+                "required": ["concept", "suggested_templates"],
+            },
+        ),
     )
-    return (response.text or "").strip()
+    text = (response.text or "").strip()
+    if not text:
+        raise ValueError("Gemini returned an empty response")
+    parsed = json.loads(text)
+    if not isinstance(parsed, dict):
+        raise ValueError("Gemini returned non-object JSON")
+    concept = parsed.get("concept")
+    if not isinstance(concept, str) or not concept.strip():
+        raise ValueError("Gemini response did not include concept")
+    return {
+        "concept": concept.strip(),
+        "suggested_templates": validate_suggested_templates(parsed.get("suggested_templates")),
+    }
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -241,7 +346,7 @@ class Handler(BaseHTTPRequestHandler):
         prompt = build_prompt(report.strip(), language)
         future = _executor.submit(generate_concept, prompt)
         try:
-            concept_text = future.result(timeout=GEMINI_TIMEOUT_SECONDS)
+            concept_data = future.result(timeout=GEMINI_TIMEOUT_SECONDS)
         except Exception as exc:
             if isinstance(exc, concurrent.futures.TimeoutError):
                 detail = f"Gemini request timed out after {GEMINI_TIMEOUT_SECONDS}s"
@@ -254,10 +359,11 @@ class Handler(BaseHTTPRequestHandler):
                 {"error": "concept generation failed", "detail": detail},
             )
 
-        return self._send_json(200, {"concept": concept_text})
+        return self._send_json(200, concept_data)
 
 
 def main() -> None:
+    get_templates_metadata()
     if not GCP_PROJECT_ID:
         log("WARNING: GCP_PROJECT_ID is not set.")
     if not GOOGLE_APPLICATION_CREDENTIALS:

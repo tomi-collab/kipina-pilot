@@ -161,7 +161,8 @@ export const fi: Translations = {
     updating: 'Päivitetään...',
     back: 'Takaisin',
     drawerLabel: 'Pyydä Mestaria muuttamaan',
-    promptPlaceholder: 'Mitä muutetaan? Esim. "Tee tästä neonvihreä"',
+    promptPlaceholder:
+      'Pyydä muutosta tai kysy mitä vain — esim. "tee napista isompi" tai "miksei tää toimi?"',
     errors: {
       sessionExpired: 'Sessio päättyi. Aloita uusi vibekoodaus.',
       sessionExpiredAction: 'Aloita uudelleen',

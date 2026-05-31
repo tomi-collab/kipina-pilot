@@ -16,6 +16,7 @@ def create_session(
     concept: str,
     report: str,
     tenant_id: str | None = None,
+    suggested_templates: list[str] | None = None,
 ) -> None:
     with _lock:
         _state[sandbox_id] = {
@@ -23,6 +24,7 @@ def create_session(
             "tenant_id": tenant_id,
             "concept": concept,
             "report": report,
+            "suggested_templates": suggested_templates or [],
             "created_at": time.time(),
             "iteration_count": 0,
             "html_history": [],

@@ -13,3 +13,4 @@ __pycache__/
 service-account*.json
 *.tsbuildinfo
 docs/kipina-tenant-luontiohje.md
+docs/codex-brief-*.md

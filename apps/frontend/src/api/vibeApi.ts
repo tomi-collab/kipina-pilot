@@ -6,6 +6,7 @@ export interface StartRequest {
   report?: string
   tenantId?: string
   vibe?: string
+  suggestedTemplates?: string[]
 }
 
 export interface StartResponse {
@@ -17,15 +18,15 @@ export interface StartResponse {
 
 export interface IterateRequest {
   sandboxId: string
-  mode: 'koodaus' | 'pohdinta'
   userInput: string
   language: 'fi' | 'en'
 }
 
 export interface IterateResponse {
-  prototype_html?: string
+  prototype_html?: string | null
   mestari_message: string
   iteration_count: number
+  changed?: boolean
   concept_drift_warning?: string | null
 }
 
@@ -51,7 +52,7 @@ async function readErrorMessage(response: Response, fallback: string) {
 export async function startPrototype(
   payload: StartRequest
 ): Promise<StartResponse> {
-  const body: Record<string, string | undefined> = {
+  const body: Record<string, string | string[] | undefined> = {
     session_id: payload.sessionId,
   }
 
@@ -61,6 +62,9 @@ export async function startPrototype(
     body.concept = payload.concept
     body.report = payload.report
     body.tenant_id = payload.tenantId
+    if (payload.suggestedTemplates?.length) {
+      body.suggested_templates = payload.suggestedTemplates
+    }
   }
 
   const response = await fetch(`${BASE}/start`, {
@@ -85,7 +89,6 @@ export async function iteratePrototype(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       sandbox_id: payload.sandboxId,
-      mode: payload.mode,
       user_input: payload.userInput,
       language: payload.language,
     }),

@@ -6,25 +6,28 @@ import os
 import sys
 import time
 import traceback
+import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-import agent_engine
 import mestari
 import sandbox_state
 
 
 PORT = int(os.environ.get("PORT", "8080"))
 CORS_ORIGIN = "https://pilot.kipina.digiter.fi"
+TEMPLATES_PATH = os.environ.get("TEMPLATES_PATH", "/app/templates.json")
 MAX_BODY_BYTES = 160 * 1024
 MAX_REPORT_CHARS = 50_000
 MAX_USER_INPUT_CHARS = 5_000
 TTL_SECONDS = 3600
-GEMINI_TIMEOUT_SECONDS = int(os.environ.get("GEMINI_TIMEOUT_SECONDS", "90"))
+START_TIMEOUT_SECONDS = int(os.environ.get("START_TIMEOUT_SECONDS", os.environ.get("GEMINI_TIMEOUT_SECONDS", "180")))
+ITERATE_TIMEOUT_SECONDS = int(os.environ.get("ITERATE_TIMEOUT_SECONDS", os.environ.get("GEMINI_TIMEOUT_SECONDS", "90")))
 
 _executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+_template_ids: set[str] | None = None
 
 
 def log(message: str) -> None:
@@ -33,6 +36,39 @@ def log(message: str) -> None:
 
 def _detail(exc: Exception) -> str:
     return str(exc)[:240] or exc.__class__.__name__
+
+
+def _load_template_ids() -> set[str]:
+    global _template_ids
+    if _template_ids is None:
+        try:
+            with open(TEMPLATES_PATH, encoding="utf-8") as file:
+                data = json.load(file)
+        except OSError as exc:
+            raise RuntimeError(f"templates metadata missing: {TEMPLATES_PATH}") from exc
+        templates = data.get("templates")
+        if not isinstance(templates, list):
+            raise RuntimeError("templates metadata must include a templates list")
+        ids = {
+            item.get("id")
+            for item in templates
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        if not ids:
+            raise RuntimeError("templates metadata includes no valid template ids")
+        _template_ids = ids
+    return _template_ids
+
+
+def _validate_suggested_templates(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    allowed = _load_template_ids()
+    result = []
+    for item in value:
+        if isinstance(item, str) and item in allowed and item not in result:
+            result.append(item)
+    return result
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -152,13 +188,6 @@ class Handler(BaseHTTPRequestHandler):
             if not sandbox_id:
                 status = self._send_json(404, {"error": "not_found"})
                 return
-            try:
-                agent_engine.delete_sandbox(sandbox_id)
-            except agent_engine.AgentEngineConfigError as exc:
-                log(f"Prototype sandbox delete skipped: {_detail(exc)}")
-            except agent_engine.AgentEngineError:
-                log("Prototype sandbox delete failed:")
-                traceback.print_exc(file=sys.stdout)
             sandbox_state.delete_session(sandbox_id)
             status = self._send_no_content()
         finally:
@@ -166,6 +195,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def _bad_request(self, error: str, detail: str) -> tuple[int, None]:
         return self._send_json(400, {"error": error, "detail": detail}), None
+
+    def _cleanup_start_sandbox(self, sandbox_id: str | None) -> None:
+        if not sandbox_id:
+            return
+        sandbox_state.delete_session(sandbox_id)
 
     def _handle_start(self) -> tuple[int, str | None]:
         body = self._read_json_body()
@@ -177,6 +211,7 @@ class Handler(BaseHTTPRequestHandler):
         vibe = body.get("vibe")
         tenant_id = body.get("tenant_id")
         session_id = body.get("session_id")
+        suggested_templates = _validate_suggested_templates(body.get("suggested_templates"))
 
         if (concept is None or report is None) and isinstance(vibe, str) and vibe.strip():
             concept = concept if concept is not None else vibe
@@ -191,37 +226,41 @@ class Handler(BaseHTTPRequestHandler):
 
         session_text = session_id if isinstance(session_id, str) and session_id else ""
         tenant_text = tenant_id if isinstance(tenant_id, str) and tenant_id else None
-        sandbox_id = None
+        sandbox_id = f"kipina-{uuid.uuid4().hex}"
         try:
-            sandbox_id = agent_engine.create_sandbox()
             sandbox_state.create_session(
                 sandbox_id=sandbox_id,
                 session_id=session_text,
                 tenant_id=tenant_text,
                 concept=concept.strip(),
                 report=report.strip(),
+                suggested_templates=suggested_templates,
             )
             future = _executor.submit(
                 mestari.create_initial_prototype,
                 concept.strip(),
                 report.strip(),
                 "fi",
+                sandbox_id,
+                suggested_templates,
             )
-            data = future.result(timeout=GEMINI_TIMEOUT_SECONDS)
-        except agent_engine.AgentEngineError as exc:
-            return self._send_json(exc.status, {"error": exc.error, "detail": _detail(exc)}), sandbox_id
+            data = future.result(timeout=START_TIMEOUT_SECONDS)
+        except concurrent.futures.TimeoutError:
+            log("Mestari initial prototype timed out.")
+            if "future" in locals():
+                future.cancel()
+            self._cleanup_start_sandbox(sandbox_id)
+            return self._send_json(
+                504,
+                {"error": "start_timeout", "detail": "Sovelluksen luonti kesti liian kauan. Yritä uudelleen."},
+            ), sandbox_id
         except Exception as exc:
             log("Mestari initial prototype failed:")
             traceback.print_exc(file=sys.stdout)
-            if sandbox_id:
-                sandbox_state.delete_session(sandbox_id)
-                try:
-                    agent_engine.delete_sandbox(sandbox_id)
-                except agent_engine.AgentEngineError:
-                    log("Prototype sandbox cleanup after generation failure failed.")
+            self._cleanup_start_sandbox(sandbox_id)
             return self._send_json(
                 502,
-                {"error": "prototype_generation_failed", "detail": _detail(exc)},
+                {"error": "start_failed", "detail": "Sovelluksen luonti epäonnistui. Yritä uudelleen."},
             ), sandbox_id
 
         html = data["prototype_html"]
@@ -253,8 +292,8 @@ class Handler(BaseHTTPRequestHandler):
         session = sandbox_state.get_session(sandbox_id)
         if session is None:
             return self._send_json(404, {"error": "sandbox_not_found"}), sandbox_id
-        if mode not in ("koodaus", "pohdinta"):
-            return self._bad_request("invalid_mode", "mode must be koodaus or pohdinta.")
+        if mode not in (None, "", "iterate", "koodaus", "pohdinta"):
+            log(f"Prototype iterate ignoring unknown mode: {mode!r}")
         input_error = _validate_text(user_input, "user_input", MAX_USER_INPUT_CHARS)
         if input_error:
             return self._bad_request("invalid_user_input", input_error)
@@ -266,61 +305,46 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json(409, {"error": "prototype_missing"}), sandbox_id
 
         try:
-            if mode == "koodaus":
-                future = _executor.submit(
-                    mestari.iterate_koodaus,
-                    current_html,
-                    session["recent_iterations"],
-                    user_input.strip(),
-                    session["concept"],
-                    session["report"],
-                    language,
-                )
-                data = future.result(timeout=GEMINI_TIMEOUT_SECONDS)
-                warning = data.get("concept_drift_warning")
-                if warning and session.get("concept_drift_warned"):
-                    warning = None
-                elif warning:
-                    sandbox_state.mark_drift_warned(sandbox_id)
-                sandbox_state.add_html_version(sandbox_id, data["prototype_html"])
-                iteration_count = sandbox_state.increment_iteration(sandbox_id)
-                sandbox_state.add_iteration(sandbox_id, user_input.strip(), data["mestari_message"])
-                status = self._send_json(
-                    200,
-                    {
-                        "prototype_html": data["prototype_html"],
-                        "mestari_message": data["mestari_message"],
-                        "iteration_count": iteration_count,
-                        "concept_drift_warning": warning,
-                    },
-                )
-                return status, sandbox_id
-
             future = _executor.submit(
-                mestari.iterate_pohdinta,
+                mestari.iterate,
                 current_html,
                 session["recent_iterations"],
                 user_input.strip(),
                 session["concept"],
                 session["report"],
                 language,
+                sandbox_id,
+                session.get("suggested_templates", []),
             )
-            data = future.result(timeout=GEMINI_TIMEOUT_SECONDS)
+            data = future.result(timeout=ITERATE_TIMEOUT_SECONDS)
+            prototype_html = data.get("prototype_html")
+            changed = isinstance(prototype_html, str) and bool(prototype_html.strip())
+            warning = data.get("concept_drift_warning")
+            if warning and session.get("concept_drift_warned"):
+                warning = None
+            elif warning:
+                sandbox_state.mark_drift_warned(sandbox_id)
+            if changed:
+                sandbox_state.add_html_version(sandbox_id, prototype_html)
             iteration_count = sandbox_state.increment_iteration(sandbox_id)
             sandbox_state.add_iteration(sandbox_id, user_input.strip(), data["mestari_message"])
-            return self._send_json(
+            status = self._send_json(
                 200,
                 {
+                    "prototype_html": prototype_html if changed else None,
                     "mestari_message": data["mestari_message"],
                     "iteration_count": iteration_count,
+                    "changed": changed,
+                    "concept_drift_warning": warning,
                 },
-            ), sandbox_id
+            )
+            return status, sandbox_id
         except Exception as exc:
             log("Mestari iteration failed:")
             traceback.print_exc(file=sys.stdout)
             return self._send_json(
                 502,
-                {"error": "prototype_iteration_failed", "detail": _detail(exc)},
+                {"error": "iteration_failed", "detail": _detail(exc)},
             ), sandbox_id
 
     def _handle_undo(self) -> tuple[int, str | None]:
@@ -369,13 +393,11 @@ def _validate_text(value: Any, name: str, max_chars: int) -> str | None:
 
 
 def main() -> None:
-    missing = agent_engine.missing_config()
-    if missing:
-        log("WARNING: Prototype Agent Engine config missing: " + ", ".join(missing))
+    _load_template_ids()
     log(
         "kipina-prototype-api starting "
         f"model={mestari.GEMINI_MODEL} project={mestari.GCP_PROJECT_ID or '-'} "
-        f"location={mestari.GCP_LOCATION} agent_engine={'set' if agent_engine.AGENT_ENGINE_ID else '-'}"
+        f"location={mestari.GCP_LOCATION} sandbox_id=uuid"
     )
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     log(f"kipina-prototype-api listening on 0.0.0.0:{PORT}")

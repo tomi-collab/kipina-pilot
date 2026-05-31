@@ -6,7 +6,18 @@ import {
   type StartResponse,
   type VibeApiError,
 } from '@/api/vibeApi'
+import {
+  generateConcept,
+  type GenerateConceptResponse,
+} from '@/lib/api'
 import type { Lang } from '@/lib/i18n'
+
+export type VibeStartPhase =
+  | 'report'
+  | 'concept'
+  | 'prototype'
+  | 'done'
+  | 'error'
 
 export interface VibeSessionState {
   sandboxId: string | null
@@ -16,6 +27,8 @@ export interface VibeSessionState {
   iterationCount: number
   drawerOpen: boolean
   isLoading: boolean
+  isInitializing: boolean
+  startPhase: VibeStartPhase
   promptText: string
   error: string | null
   expired: boolean
@@ -32,6 +45,7 @@ interface StoredVibeSession {
 type Action =
   | { type: 'RESTORE'; payload: StoredVibeSession }
   | { type: 'START_BEGIN' }
+  | { type: 'START_PHASE'; payload: VibeStartPhase }
   | { type: 'START_SUCCESS'; payload: StartResponse }
   | { type: 'START_ERROR'; payload: string }
   | { type: 'ITERATE_BEGIN' }
@@ -51,6 +65,8 @@ function initialState(sessionId: string): VibeSessionState {
     iterationCount: 0,
     drawerOpen: false,
     isLoading: false,
+    isInitializing: false,
+    startPhase: 'report',
     promptText: '',
     error: null,
     expired: false,
@@ -74,7 +90,16 @@ function reducer(
         error: null,
       }
     case 'START_BEGIN':
-      return { ...state, isLoading: true, initialized: true, error: null }
+      return {
+        ...state,
+        isLoading: true,
+        isInitializing: true,
+        initialized: true,
+        startPhase: 'prototype',
+        error: null,
+      }
+    case 'START_PHASE':
+      return { ...state, startPhase: action.payload }
     case 'START_SUCCESS':
       return {
         ...state,
@@ -83,6 +108,8 @@ function reducer(
         mestariMessage: action.payload.mestari_message,
         iterationCount: 0,
         isLoading: false,
+        isInitializing: false,
+        startPhase: 'done',
         initialized: true,
         error: null,
         expired: false,
@@ -91,6 +118,8 @@ function reducer(
       return {
         ...state,
         isLoading: false,
+        isInitializing: false,
+        startPhase: 'error',
         initialized: true,
         error: action.payload,
       }
@@ -128,6 +157,10 @@ function reducer(
 }
 
 const VIBE_STORAGE_PREFIX = 'kipina-vibe-'
+const VIBE_CONCEPT_STORAGE_PREFIX = 'kipina-concept-'
+const VIBE_TEMPLATES_STORAGE_PREFIX = 'kipina-templates-'
+const conceptCache = new Map<string, string>()
+const templateCache = new Map<string, string[]>()
 
 function storageKey(sessionId: string) {
   return VIBE_STORAGE_PREFIX + sessionId
@@ -159,6 +192,23 @@ function errorMessage(error: unknown) {
   return 'network_error'
 }
 
+function cacheKey(report: string, lang: Lang) {
+  return `${lang}:${report}`
+}
+
+function readStoredTemplates(sessionId: string): string[] {
+  try {
+    const raw = sessionStorage.getItem(VIBE_TEMPLATES_STORAGE_PREFIX + sessionId)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string')
+      : []
+  } catch {
+    return []
+  }
+}
+
 export function useVibeSession(sessionId: string, language: Lang) {
   const [state, dispatch] = useReducer(reducer, sessionId, initialState)
 
@@ -170,7 +220,12 @@ export function useVibeSession(sessionId: string, language: Lang) {
   }, [sessionId])
 
   const startSession = useCallback(
-    async (concept: string, report: string, tenantId: string) => {
+    async (
+      concept: string,
+      report: string,
+      tenantId: string,
+      suggestedTemplates: string[] = []
+    ) => {
       dispatch({ type: 'START_BEGIN' })
       try {
         const response = await startPrototype({
@@ -178,6 +233,7 @@ export function useVibeSession(sessionId: string, language: Lang) {
           report,
           tenantId,
           sessionId,
+          suggestedTemplates,
         })
         dispatch({ type: 'START_SUCCESS', payload: response })
         saveStoredSession(sessionId, {
@@ -193,6 +249,64 @@ export function useVibeSession(sessionId: string, language: Lang) {
     [sessionId]
   )
 
+  const startAutomatedSession = useCallback(
+    async (report: string, tenantId: string) => {
+      dispatch({ type: 'START_BEGIN' })
+      dispatch({ type: 'START_PHASE', payload: 'report' })
+      try {
+        const key = cacheKey(report, language)
+        let concept = sessionStorage.getItem(VIBE_CONCEPT_STORAGE_PREFIX + sessionId)
+        let suggestedTemplates = readStoredTemplates(sessionId)
+
+        if (!concept) {
+          concept = conceptCache.get(key) ?? null
+        }
+        if (concept) {
+          sessionStorage.setItem(VIBE_CONCEPT_STORAGE_PREFIX + sessionId, concept)
+          suggestedTemplates = templateCache.get(key) ?? suggestedTemplates
+          sessionStorage.setItem(
+            VIBE_TEMPLATES_STORAGE_PREFIX + sessionId,
+            JSON.stringify(suggestedTemplates)
+          )
+        } else {
+          dispatch({ type: 'START_PHASE', payload: 'concept' })
+          const conceptResponse: GenerateConceptResponse = await generateConcept({
+            report,
+            language,
+          })
+          concept = conceptResponse.concept
+          suggestedTemplates = conceptResponse.suggested_templates ?? []
+          conceptCache.set(key, concept)
+          templateCache.set(key, suggestedTemplates)
+          sessionStorage.setItem(VIBE_CONCEPT_STORAGE_PREFIX + sessionId, concept)
+          sessionStorage.setItem(
+            VIBE_TEMPLATES_STORAGE_PREFIX + sessionId,
+            JSON.stringify(suggestedTemplates)
+          )
+        }
+
+        dispatch({ type: 'START_PHASE', payload: 'prototype' })
+        const response = await startPrototype({
+          concept,
+          report,
+          tenantId,
+          sessionId,
+          suggestedTemplates,
+        })
+        dispatch({ type: 'START_SUCCESS', payload: response })
+        saveStoredSession(sessionId, {
+          sandboxId: response.sandbox_id,
+          prototypeHtml: response.prototype_html,
+          mestariMessage: response.mestari_message,
+          iterationCount: 0,
+        })
+      } catch (error) {
+        dispatch({ type: 'START_ERROR', payload: errorMessage(error) })
+      }
+    },
+    [language, sessionId]
+  )
+
   const iterate = useCallback(
     async (input: string) => {
       const trimmed = input.trim()
@@ -201,7 +315,6 @@ export function useVibeSession(sessionId: string, language: Lang) {
       try {
         const response = await iteratePrototype({
           sandboxId: state.sandboxId,
-          mode: 'koodaus',
           userInput: trimmed,
           language,
         })
@@ -245,6 +358,7 @@ export function useVibeSession(sessionId: string, language: Lang) {
   return {
     state,
     startSession,
+    startAutomatedSession,
     iterate,
     setPromptText,
     setDrawerOpen,
