@@ -112,6 +112,7 @@ export function VibeStudioPage() {
             loadingLabel={
               state.prototypeHtml ? t.vibe.preparing : t.vibe.startLoading
             }
+            loadingTips={t.vibe.tips}
             title={t.prototype.heading}
           />
         </div>

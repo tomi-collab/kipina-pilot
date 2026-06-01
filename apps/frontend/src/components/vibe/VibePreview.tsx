@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
+import { VibeWaitingIndicator } from '@/components/vibe/VibeWaitingIndicator'
 
 interface VibePreviewProps {
   prototypeHtml: string
   sandboxId: string | null
   isLoading: boolean
   loadingLabel: string
+  loadingTips: string[]
   title: string
 }
 
@@ -13,6 +15,7 @@ export function VibePreview({
   sandboxId,
   isLoading,
   loadingLabel,
+  loadingTips,
   title,
 }: VibePreviewProps) {
   const injectedHtml = useMemo(() => {
@@ -43,15 +46,11 @@ export function VibePreview({
 
       {isLoading && (
         <div
-          className="absolute inset-0 flex items-center justify-center bg-slate-900/60"
+          className="absolute inset-0 flex items-center justify-center bg-slate-900/70 px-5"
           aria-live="polite"
         >
-          <div className="flex items-center gap-3 rounded-2xl bg-slate-950/90 px-5 py-4 text-slate-100 shadow-2xl">
-            <span
-              className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent"
-              aria-hidden="true"
-            />
-            <span className="text-base font-semibold">{loadingLabel}</span>
+          <div className="rounded-2xl border border-slate-700 bg-slate-950/90 px-5 py-5 text-slate-100 shadow-2xl md:px-6 md:py-6">
+            <VibeWaitingIndicator label={loadingLabel} tips={loadingTips} />
           </div>
         </div>
       )}

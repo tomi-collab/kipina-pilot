@@ -65,6 +65,7 @@ export interface Translations {
     back: string
     drawerLabel: string
     promptPlaceholder: string
+    tips: string[]
     errors: {
       sessionExpired: string
       sessionExpiredAction: string
@@ -163,6 +164,42 @@ export const fi: Translations = {
     drawerLabel: 'Pyydä Mestaria muuttamaan',
     promptPlaceholder:
       'Pyydä muutosta tai kysy mitä vain — esim. "tee napista isompi" tai "miksei tää toimi?"',
+    tips: [
+      'Voit pyytää Mestaria tarkasti: "tee napista isompi" toimii paremmin kuin "tee siitä kivempi".',
+      'Mitä selkeämmin kerrot mitä haluat, sitä lähemmäs Mestari osuu.',
+      '"Siirrä otsikko keskelle" on Mestarille helpompi kuin "korjaa toi yläosa".',
+      'Jos jokin ei mene niin kuin halusit, sano vielä tarkemmin mitä tarkoitit.',
+      'Yksi muutos kerrallaan on usein helpompi kuin monta yhtä aikaa.',
+      'Et tykkää väristä? Sano vaikka "vaihda tausta tummaksi" — Mestari hoitaa.',
+      'Voit pyytää Mestaria kokeilemaan toisia värejä, jos ekana ei napannut.',
+      '"Tee tästä värikkäämpi" tai "rauhallisemman näköinen" — Mestari ymmärtää fiiliksenkin.',
+      'Voit pyytää isompaa tekstiä, jos jotain on hankala lukea.',
+      'Haluatko pyöreämmät nurkat tai isommat napit? Pyydä vaan.',
+      'Voit pyytää Mestaria vaihtamaan minkä tahansa tekstin toiseksi.',
+      '"Vaihda otsikoksi…" — kerro mitä haluat lukevan, niin se vaihtuu.',
+      'Jos jokin sana tuntuu väärältä, sano Mestarille uusi.',
+      'Voit pyytää Mestaria lisäämään uuden napin, kentän tai osion.',
+      '"Laita napit allekkain" tai "vieretysten" — asettelua voi muuttaa pyytämällä.',
+      'Jos jokin on väärässä paikassa, kerro mihin haluat sen.',
+      'Voit pyytää lisää tilaa elementtien väliin, jos näyttää ahtaalta.',
+      'Meni liian pitkälle? Voit aina perua viimeisen muutoksen.',
+      'Uskalla kokeilla — jos et tykkää, voit perua ja yrittää toisin.',
+      'Mikään ei mene rikki kokeilemalla. Aina voi palata taaksepäin.',
+      'Jos uusi versio oli huonompi kuin edellinen, peru se vaan.',
+      'Voit myös vain kysyä Mestarilta neuvoa — ei pakko pyytää muutosta joka kerta.',
+      'Jumissa idean kanssa? Kysy Mestarilta mitä se ehdottaisi.',
+      '"Mitä tähän vielä kannattaisi lisätä?" — Mestari miettii kanssasi.',
+      'Jos et tiedä mitä seuraavaksi, kysy Mestarilta vinkkiä.',
+      'Sinun ei tarvitse osata koodata. Kerro vain mitä haluat, niin Mestari rakentaa.',
+      'Puhu Mestarille ihan omin sanoin — ei tarvitse mitään erikoiskäskyjä.',
+      'Ei tarvitse tietää miten asiat tehdään — riittää että tiedät mitä haluat.',
+      'Hyvät jutut syntyy kokeilemalla. Harva osuu täydelliseen heti.',
+      'Voit muokata samaa juttua niin monta kertaa kuin haluat.',
+      'Tämä on sinun ideasi — Mestari vain auttaa tekemään siitä todeksi.',
+      'Pienetkin muutokset voivat tehdä isoa eroa. Kokeile vaan.',
+      'Ei ole vääriä pyyntöjä. Jos jokin tuntuu hyvältä idealta, sano se.',
+      'Mestari ei väsy — voit hioa juttua niin kauan kuin haluat.',
+    ],
     errors: {
       sessionExpired: 'Sessio päättyi. Aloita uusi vibekoodaus.',
       sessionExpiredAction: 'Aloita uudelleen',

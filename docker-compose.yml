@@ -51,6 +51,8 @@ services:
       GCP_PROJECT_ID: "${GCP_PROJECT_ID:-apply-project-35406}"
       GCP_LOCATION: "${PROTOTYPE_GCP_LOCATION:-europe-west4}"
       GEMINI_MODEL: "${PROTOTYPE_GEMINI_MODEL:-gemini-2.5-pro}"
+      START_TIMEOUT_SECONDS: "${START_TIMEOUT_SECONDS:-180}"
+      ITERATE_TIMEOUT_SECONDS: "${ITERATE_TIMEOUT_SECONDS:-180}"
       TEMPLATE_PROXY_BASE_URL: "http://template-proxy:8080"
       TEMPLATES_PATH: "/app/templates.json"
       GOOGLE_APPLICATION_CREDENTIALS: "/secrets/gcp-sa-vibe.json"

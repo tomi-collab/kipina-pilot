@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button'
+import { VibeWaitingIndicator } from '@/components/vibe/VibeWaitingIndicator'
 import type { VibeStartPhase } from '@/hooks/useVibeSession'
+import { useTranslation } from '@/lib/i18n'
 
 interface VibeStartCanvasProps {
   hasError: boolean
@@ -12,6 +14,8 @@ export function VibeStartCanvas({
   phase,
   onRetry,
 }: VibeStartCanvasProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center bg-slate-950 px-5 text-slate-100">
       <div className="w-full max-w-md text-center">
@@ -37,14 +41,10 @@ export function VibeStartCanvas({
             <>
               {/* VAIHE-SISÄLTÖ — Tomi voi myöhemmin näyttää eri sisältöä per phase.
                   Nyt: yksi placeholder kaikille vaiheille. */}
-              {/* PLACEHOLDER */}
-              <div
-                className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-emerald-300 border-t-transparent motion-reduce:animate-pulse"
-                aria-hidden="true"
+              <VibeWaitingIndicator
+                label="Mestari rakentaa sovellustasi…"
+                tips={t.vibe.tips}
               />
-              <p className="text-xl font-bold text-slate-50">
-                Mestari rakentaa sovellustasi…
-              </p>
             </>
           )}
         </div>
